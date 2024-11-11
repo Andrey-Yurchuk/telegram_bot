@@ -1,0 +1,57 @@
+services:
+    laravel.app:
+        build:
+            context: .
+        image: laravel-docker-app
+        volumes:
+            - .:/var/www/html
+        depends_on:
+            - mysql
+        networks:
+            - laravel
+
+    nginx:
+        image: nginx:latest
+        ports:
+            - '8080:80'
+        volumes:
+            - .:/var/www/html
+            - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - laravel.app
+        networks:
+            - laravel
+
+    mysql:
+        image: mysql:8.0
+        restart: always
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+        ports:
+            - '3308:3306'
+        volumes:
+            - db_data:/var/lib/mysql
+        networks:
+            - laravel
+
+    ngrok:
+        image: wernight/ngrok:latest
+        ports:
+            - '4040:4040'
+        environment:
+            NGROK_AUTH: ${NGROK_AUTH}
+            NGROK_PORT: nginx:80
+        depends_on:
+            - nginx
+        networks:
+            - laravel
+
+networks:
+    laravel:
+        driver: bridge
+
+volumes:
+    db_data:
